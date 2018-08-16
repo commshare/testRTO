@@ -1,0 +1,115 @@
+#TauStreamingServer
+TauStremingServer User Guide
+
+Author: tao_627@aliyun.com
+Last Update: 2011-07-04
+
+1. Introduction
+
+Darwin Streaming Server (DSS), the open source version of Apple’s QuickTime Streaming Server technology,
+is the first open sourced and fully featured RTP/RTSP streaming server, capable of streaming a variety of
+media types including H.264/MPEG-4 AVC, MPEG-4 Part 2 and 3GP. It allows you to send streaming media to
+clients across the Internet using the industry standard RTP and RTSP protocols.
+
+TauStreamingServer is a simplified version extracting from DSS 5.5.5, just capable of using the unicast mode
+to test the RTSP/UDP/RTP/RTCP/RUDP protocols based on the some Linux platforms, such as Readhat RHEL AS4,
+Ubuntu 10.10.
+
+All rights belong to Apple Computers, Inc. no use for commercial utilities !
+
+
+2. DIRECTORY STRUCTURE
+
+  TauStreamingServer/ ............... top src dir
+  |-- APIModules/APICommonCode ............... API common code
+                 APIStubLib................... API stub library
+                 OSMemory_Modules............. memory module
+                 QTSSAccessLogModule.......... user access log module(static)
+                 QTSSErrorLogModule........... error log module(static)
+                 QTSSFileModule............... file module(static)
+                 QTSSFlowControlModule........ flow control module(static)
+                 QTSSHomeDirectoryModule...... home directory module(dynamic)
+                 QTSSPOSIXFileSysModule....... posix file system module(static)
+                 QTSSRefMovieModule........... reference movie module(dynamic)
+  |-- CommonUtilities/Encrypt ........... base64, md5, md5 digest
+                      OSUtilities ....... OS utilites capasulity, such as mutex, rwmutex, condition, hash table, queue, thread
+                      Others ............ atomic options, data translator, assert, getopt
+                      SafeStdLib ........ internal and external std lib
+                      Socket ............ event-drived socket include tcp and udp
+                      String ............ string parser and translator
+                      Task .............. idle and timeout task
+  |-- MP4Packetizer/ .................... hinted mp4 file packetizer
+  |-- ServerCore/ ....................... darwin streaming server core
+                 Prefs .................. server pre configure file
+                 HTTP ................... http protocol
+                 RTSP ................... rtsp protocol
+                 RTP .................... rtp protocol
+                 RTCP ................... rtcp protocol
+                 SDP .................... sdp protocol
+  |-- Doc/ ............. protocol, file format, SDK developer guide, administror guide documents
+  |-- Build/ ............. compile, build tarball and install bash scripts
+  |-- README ............. intro, build, install info
+
+3. Bash Script Instruction
+
+  ./Buildit       compile the DarwinStreamingServer exe
+  ./clean         clean the temp file .o, .xo, etc
+  ./buildtarball  create and gzip the install packet (main script)
+  ./Make_Root     create root dir
+  ./Install       install the DarwingStreamingServer exe and congfig file into the specified path
+
+4. BUILDING Instruction
+
+  su root                              #change common user into root
+  tar -zxvf TauStreamingServer.tar.gz  # unpacked source package
+  cd TauStreamingServer/
+  ls -l
+  cd Build/
+  chmod 777 *
+  ./buildtarball                       # compile, create root directory and Linux tarball packet
+  ls -l
+  cd DarwingStreamingSrvr-Linux        # generate the configure script and Makefile.in files
+  ls -l
+  ./Install                            # install the exe into root dir
+    Please enter a new administrator user name: your_username
+    Please enter a new administrator Password: your_password
+  cd /usr/local/sbin
+  ls -l
+  ./DarwinStreamingServer -d           # open the streaming server in the debug mode
+
+5. INSTALLATION DIR
+
+  DEFAULT DIR                                              CONTENTS
+  /var/streaming/logs ...................................  log files created at runtime
+  /usr/local/movies .....................................  media file directory, such as .mp4, .mov, .3gp files
+  /etc/streaming ........................................  xml configuration files, etc
+  /usr/local/sbin .......................................  executable binaries DarwinStreamingServer
+  /usr/local/sbin/StreamingServerModules ................  QTSSRefMovieModule.so, QTSSHomeDirectoryModule.so
+  /usr/local/bin ........................................  createuserstreamingdir script, etc
+
+6. CHECK INSTALL
+
+   root@taoyx-desktop:/home/taoyx# id qtss
+      uid=1001(qtss) gid=1001(qtss) 组=1001(qtss)
+   root@taoyx-desktop:/home/taoyx# ps aux | grep Darwin
+      qtss      1788  0.0  0.2  38692  2520 pts/0    Sl+  16:48   0:00 ./DarwinStreamingServer -d
+      root      1838  0.0  0.0   4012   756 pts/1    S+   16:58   0:00 grep --color=auto Darwin
+   root@taoyx-desktop:/home/taoyx# netstat -ntulp | grep Darwin
+      tcp        0      0 0.0.0.0:8001            0.0.0.0:*               LISTEN      1788/DarwinStreamin
+      tcp        0      0 0.0.0.0:554             0.0.0.0:*               LISTEN      1788/DarwinStreamin
+      tcp        0      0 0.0.0.0:7070            0.0.0.0:*               LISTEN      1788/DarwinStreamin
+      tcp        0      0 0.0.0.0:8000            0.0.0.0:*               LISTEN      1788/DarwinStreamin
+      udp        0      0 127.0.0.1:6970          0.0.0.0:*                           1788/DarwinStreamin
+      udp        0      0 192.168.1.101:6970      0.0.0.0:*                           1788/DarwinStreamin
+      udp        0      0 127.0.0.1:6971          0.0.0.0:*                           1788/DarwinStreamin
+      udp        0      0 192.168.1.101:6971      0.0.0.0:*                           1788/DarwinStreamin
+
+7. OPEN CLIENT PLAYER
+
+   open the vlc player on the same local host with the TauStreamingServer locates on, input
+   rtsp://127.0.0.1:554/sample_100kbit.mp4
+   and enjoy the sample video in the media install directory /usr/local/movies.
+
+8. To do
+
+   fix the start failure when using the '/usr/local/sbin/DarwingStreamingServer -x' start options in Install script

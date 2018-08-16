@@ -1,0 +1,203 @@
+#!/bin/bash
+
+# Install script for the Darwin Streaming Server
+# source release
+# modified by tao_627@yahoo.cn 2011-07-02
+
+echo;echo Installing Darwin Streaming Server;echo
+
+INSTALL_OS=`uname`
+
+if [ $INSTALL_OS != "SunOS" ]; then
+	USERID=`id -u`
+else
+	USERID=`/usr/xpg4/bin/id -u`
+fi
+
+if [ $USERID = 0 ]; then
+
+	echo Checking for and Killing currently running Darwin Streaming Server
+	
+	if [ $INSTALL_OS = "Linux" ]; then
+		ps -ax | awk '{print $1" " $5}' | awk '/DarwinStreamingServer/ {print $1}' | xargs -r kill -9  
+	fi
+
+## REMOVED OLD VERSION ##
+
+	echo Removing previous versions of Darwin Streaming Server
+	if [ -f /usr/local/sbin/DarwinStreamingServer ]; then
+		echo removing /usr/local/sbin/DarwinStreamingServer
+		rm -f /usr/local/sbin/DarwinStreamingServer 
+	fi
+	
+	echo
+	
+## BACKUP OLD CONFIG FILES ##
+	echo Backing up previous config files
+
+	if [ -f /etc/streaming/streamingserver.xml ]; then
+		echo backing up /etc/streaming/streamingserver.xml to /etc/streaming/streamingserver.xml.backup
+		mv /etc/streaming/streamingserver.xml /etc/streaming/streamingserver.xml.backup
+	fi
+	
+	if [ -f /etc/streaming/qtusers ]; then
+		echo backing up /etc/streaming/qtusers to /etc/streaming/qtusers.backup
+		mv /etc/streaming/qtusers /etc/streaming/qtusers.backup
+	fi
+
+	if [ -f /etc/streaming/qtgroups ]; then
+		echo backing up /etc/streaming/qtgroups to /etc/streaming/qtgroups.backup
+		mv /etc/streaming/qtgroups /etc/streaming/qtgroups.backup
+	fi
+	
+	echo
+
+# Add the unprivileged user qtss as the server's run user
+	echo "Creating unprivileged user to run the server = \"qtss\"."
+    if [ $INSTALL_OS = "Linux" ]; then
+        /usr/sbin/useradd -M qtss > /dev/null 2>&1
+    else
+        /usr/sbin/useradd qtss > /dev/null 2>&1
+    fi
+	
+## INSTALL NEW VERSION ##
+    if [ ! -d /usr/local/sbin ]; then
+            echo creating "/usr/local/sbin" directory
+            mkdir -p /usr/local/sbin
+    fi              
+    if [ ! -d /usr/local/bin ]; then
+            echo creating "/usr/local/bin" directory
+            mkdir -p /usr/local/bin
+    fi              
+
+	echo copying "DarwinStreamingServer" to "/usr/local/sbin/DarwinStreamingServer"
+	cp -f DarwinStreamingServer /usr/local/sbin/
+	
+	# For now, do not copy modules as there are no supported dynamic modules
+	# echo copying modules to "/usr/local/sbin/StreamingServerModules"
+	if [ ! -d /usr/local/sbin/StreamingServerModules ]; then
+		echo creating "/usr/local/sbin/StreamingServerModules" directory
+		mkdir /usr/local/sbin/StreamingServerModules
+	fi
+	cp -f StreamingServerModules/* /usr/local/sbin/StreamingServerModules/
+	
+	if [ -e /usr/local/sbin/StreamingServerModules/QTSSHomeDirectoryModule ]; then
+		echo copying "createuserstreamingdir" to "/usr/local/bin/createuserstreamingdir"
+		cp -f createuserstreamingdir $INSTALLROOT/usr/local/bin/
+	fi
+	
+	if [ ! -d /etc/streaming ]; then
+		echo creating "/etc/streaming" directory
+		mkdir -p /etc/streaming
+	fi
+	
+	if [ ! -e /etc/streaming/streamingserver.xml ]; then
+#		cp -f streamingserver.xml /etc/streaming/
+    /usr/local/sbin/DarwinStreamingServer -x
+	fi
+	
+	chmod 600 /etc/streaming/streamingserver.xml
+	chown qtss /etc/streaming/streamingserver.xml
+	
+	echo;echo copying "qtusers" to "/etc/streaming/qtusers"
+	cp -f qtusers /etc/streaming/qtusers
+	chmod 600 /etc/streaming/qtusers
+	chown qtss /etc/streaming/qtusers
+
+	echo;echo copying "qtgroups" to "/etc/streaming/qtgroups"
+	cp -f qtgroups /etc/streaming/qtgroups
+	chmod 600 /etc/streaming/qtgroups
+	chown qtss /etc/streaming/qtgroups
+		
+	if [ ! -d /var/streaming ]; then
+		echo creating "/var/streaming" directory
+		mkdir -p /var/streaming
+	fi
+	
+	if [ ! -d /var/streaming/logs ]; then
+		echo creating "/var/streaming/logs" directory
+		mkdir -p /var/streaming/logs
+	fi
+	
+	if [ ! -d /usr/local/movies ]; then
+		echo creating "/usr/local/movies" directory
+		mkdir -p /usr/local/movies
+	fi
+	
+	chmod 775 /usr/local/movies
+	
+  echo copying "sample_300kbit.mp4" into "/usr/local/movies/sample_300kbit.mp4"
+  cp -f sample_300kbit.mp4 /usr/local/movies/
+
+  echo copying "sample_h264_1mbit.mp4" into "/usr/local/movies/sample_h264_1mbit.mp4"
+  cp -f sample_h264_1mbit.mp4 /usr/local/movies/
+  
+  chown -R -f qtss /var/streaming/
+	chown -R -f qtss /etc/streaming/
+	chown -R -f qtss /usr/local/movies/
+	
+	echo;echo Installation Complete	
+	
+	# Setup for DSS
+	# Prompts for a username and password
+	# that can be used to administer the server
+	
+	echo;echo Darwin Streaming Server Setup;echo
+	
+	# prompt the user to enter the admin username
+	while [ "$username" = "" ]; do
+		printf "In order to administer the Darwin Streaming Server you must create an administrator user [Note: The administrator user name cannot contain spaces, or single or double quote characters, and cannot be more than 255 characters long].\n"
+		
+		printf "Please enter a new administrator user name: "
+		read username
+		if [ "$username" = "" ]; then
+			echo ""
+			echo "Error: No username entered!"
+			echo ""
+		fi
+	done
+	echo ""
+	
+	# prompt the user to enter the admin password
+	while [ "$password" = "" ]; do
+		printf "\nYou must also enter a password for the administrator user [Note: The administrator password cannot contain spaces, or quotes, either single or double, and cannot be more than 80 characters long].\n"
+
+		printf "Please enter a new administrator Password: "
+		stty -echo
+		read password
+		stty echo
+		echo ""
+		printf "Re-enter the new administrator password: "
+		stty -echo
+		read password1
+		stty echo
+		if [ "$password" = "" ]; then
+			echo ""
+			echo "Error: No password entered!"
+			echo ""
+		fi
+		if [ "$password" != "$password1" ]; then
+			echo ""
+			echo "Error: passwords entered do not match!"
+			echo ""
+			password=""
+		fi
+	
+	done
+	echo ""
+		
+	# Add the new admin username to /etc/streaming/qtgroups
+	# and delete the default admin username
+	echo admin: $username > /etc/streaming/qtgroups.tmp
+	mv /etc/streaming/qtgroups.tmp /etc/streaming/qtgroups
+	
+	chown -R -f qtss /etc/streaming/
+	
+	echo Setup Complete!
+	
+else
+
+	echo "Unable to perform install"
+	echo "You must be logged in as root to install Darwin Streaming Server";echo
+	exit 1
+fi

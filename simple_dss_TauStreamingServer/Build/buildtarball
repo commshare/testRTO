@@ -1,0 +1,45 @@
+#!/bin/sh
+
+#Darwin BuildTarball script
+# modified by taoyunxing@dadimedia.com 2010-08-24
+
+PLAT=`uname`
+
+case $PLAT in
+	"Darwin")
+        echo "Do not use this script for building on MacOS X."
+        echo "Use the 'Buildit' or 'Buildit install' command instead."
+        exit 1
+	;;
+			
+	*)
+        echo "Preparing for the Darwin "$PLAT" platform"
+	;;		
+esac
+
+echo removing DarwinStreamingSrvr$1-$PLAT.tar.gz
+if rm -f DarwinStreamingSrvr$1-$PLAT.tar.gz; 
+then :
+fi
+
+echo removing DarwinStreamingSrvr$1-$PLAT
+if rm -rf DarwinStreamingSrvr$1-$PLAT; 
+then :
+fi
+
+./clean
+./Buildit
+
+if [ ! -f ../ServerCore/DarwinStreamingServer ];
+then 
+	echo "DarwinStreamingServer failed to build!"
+	echo Buildit Failed. Exiting!
+	exit 1
+fi
+
+./DSS_MakeRoot -f DarwinStreamingSrvr$1-$PLAT $1
+tar cvf DarwinStreamingSrvr$1-$PLAT.tar DarwinStreamingSrvr$1-$PLAT
+gzip DarwinStreamingSrvr$1-$PLAT.tar
+
+echo Success!
+
